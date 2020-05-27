@@ -3,7 +3,7 @@ const submission = require('../submission/submission');
 const modelAnswer = require('./model-answer/model-answer-definitions.js');
 
 function setExerciseOptions(eventData) {
-  submission.addDefinitionSuccesfully.options({
+  return submission.addDefinitionSuccesfully.options({
     'title': getExerciseTitle(eventData.initialHTML),
     'instructions': getExerciseInstructions(eventData.initialHTML),
   });

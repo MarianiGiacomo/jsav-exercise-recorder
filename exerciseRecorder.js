@@ -1,13 +1,11 @@
 const submission = require('./submission/submission');
 const metad_func = require('./metadata/metadata');
+const dsEventsHandler = require('./events/jsavDsEvents')
 const def_func = require('./definitions/definitions');
-const init_state_func = require('./initialState/initialState');
-const anim_func = require('./animation/animation');
 const services = require('./rest-service/services');
 const helpers = require('./utils/helperFunctions');
 
-let jsav = {};
-let exercise = {};
+let exercise;
 let exerciseHTML = "";
 // LMS defines: used if grading asynchronously
 let submission_url;
@@ -53,6 +51,54 @@ function getMetadataFromURLparams() {
   // Ordinal number of the submission which has not yet been done
   const ordinal_number = new URL(location.href).searchParams.get('ordinal_number');
   return { max_points, uid, ordinal_number };
+}
+
+function saveExerciseObject(data) {
+  exercise = typeof(data) === 'object' && data;
+  return data;
+}
+
+
+const exerciseModelEvents = [
+  'jsav-exercise-model-open',
+  'jsav-exercise-model-recorded',
+  'jsav-exercise-model-init',
+  'jsav-exercise-model-begin',
+  'jsav-exercise-model-forward',
+  'jsav-exercise-model-backward',
+  'jsav-exercise-model-end',
+  'jsav-exercise-model-close'
+];
+// const isExerciseModelEvents = (event) => exerciseModelEvents.includes(event.type);
+function setModelAnswerOpened(event) {
+  modelAnswer.opened = event.type === 'jsav-exercise-model-open';
+  modelAnswer.ready = event.type === 'jsav-exercise-model-open';
+  return modelAnswer.opened && modelAnswer.ready;
+}
+
+function setSpeed(exercise) {
+  exercise.modelav.SPEED = modelAnswer.recordingSpeed +10;
+  return exercise.modelav.SPEED === modelAnswer.recordingSpeed +10;
+}
+
+const modelAnswerInitEventHandled = (exercise, event) => {
+  const setSpeed = () => setSpeeds(exercise, event);
+  const recordStep = () => def_func.modelAnswer.recordStep(exercise);
+  const stepForward = () => $('.jsavmodelanswer .jsavforward').click();
+  const isRightEvent = () => event.type === 'jsav-exercise-model-init';
+  const wasHandled = () => !modelAnswer.opened && setSpeed() && recordStep() && stepForward()
+  return isRightEvent && wasHandled(exercise, event);
+}
+
+const modelAnswerEventHandledSuccesfully = (exercise, event) => {
+
+}
+
+function passEvent(eventData) {
+  saveExerciseObject(initEventHandledSuccesfully(eventData));
+  const wasDataStructureEvent = dsEventsHandler.handled(exercise, eventData);
+  const wasExerciseEvent = exerciseStepsEventHandledSuccesfully(exercise, eventData);
+  const wasModelAnswerEvent = modelAnswerEventHandledSuccesfully(exercise, eventData);
 }
 
 function passEvent(eventData) {
@@ -125,7 +171,6 @@ function passEvent(eventData) {
       finish(eventData);
       break;
     case 'jsav-exercise-reset':
-      console.warn('Resetting submission');
       submission.reset();
       break;
     default:

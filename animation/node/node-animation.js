@@ -18,9 +18,10 @@ function handleNodeEvents(exercise, eventData) {
         nodeValue: eventData.objvalue
         }
       try {
-        submission.addAnimationStepSuccesfully.dsClick(Object.assign(clickDataTarget, clickDataSource));
+        return submission.addAnimationStepSuccesfully.dsClick(Object.assign(clickDataTarget, clickDataSource));
       } catch (error) {
         console.warn(`Could not set node click in animation: ${error}`);
+        return false;
       }
   }
 }

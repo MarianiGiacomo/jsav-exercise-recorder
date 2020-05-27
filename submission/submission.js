@@ -26,21 +26,27 @@ Object.seal(submission);
 Object.seal(submission.definitions);
 
 function reset() {
-  submission.metadata = {};
-  submission.definitions = {
-    style: {},
-    score: {},
-    options: {},
-    modelAnswer: {
-      function: "",
-      steps: []
-    },
-  };
-  submission.initialState = {
-    dataStructures: [],
-    animationHTML: ""
-  };
-  submission.animation = [];
+  try {
+    submission.metadata = {};
+    submission.definitions = {
+      style: {},
+      score: {},
+      options: {},
+      modelAnswer: {
+        function: "",
+        steps: []
+      },
+    };
+    submission.initialState = {
+      dataStructures: [],
+      animationHTML: ""
+    };
+    submission.animation = [];
+  } catch (err) {
+    console.warn('Exercise Recorder, resetting recorded submission', err);
+    return false;
+  }
+  return true;
 }
 
 function state() {

@@ -19,9 +19,10 @@ function handleArrayEvents(exercise, eventData, exerciseHTML) {
     if(eventData.arrayid) clickDataTarget.arrayid = eventData.arrayid;
     if(eventData.binaryHeapId) clickDataTarget.binaryHeapId = eventData.binaryHeapId;
       try {
-        submission.addAnimationStepSuccesfully.dsClick(Object.assign(clickDataTarget, clickDataSource));
+        return submission.addAnimationStepSuccesfully.dsClick(Object.assign(clickDataTarget, clickDataSource));
       } catch (error) {
         console.warn(`Could not set array click in animation: ${error}`);
+        return false;
       }
   }
 }

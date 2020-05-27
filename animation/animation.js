@@ -9,9 +9,8 @@ const dataStructures = require('../dataStructures/dataStructures');
 
 function handleGradableStep(exercise, eventData) {
   const exerciseHTML = helpers.getExerciseHTML(exercise)
-  // const dataStructuresState = getDataStructuresState(submissionDataStructures(), exercise);
-  const dataStructuresState = dataStructures.getDataStructuresFromExercise(exercise)
-  if(dataStructuresState.length) addStepToSubmission(eventData, dataStructuresState, exerciseHTML);
+  const dsInExercise = dataStructures.getDataStructuresFromExercise(exercise);
+  return dsInExercise.length > 0 && addStepToSubmission(eventData, dsInExercise, exerciseHTML);
 }
 
 // Returns an empthy array if there is not state change
@@ -43,21 +42,20 @@ function submissionDataStructures() {
   return dataStructures;
 }
 
-function addStepToSubmission(eventData, dataStructuresState, exerciseHTML) {
+function addStepToSubmission(eventData, dsInExercise, exerciseHTML) {
   const type = eventData.type === 'jsav-exercise-undo' ? 'undo' : 'gradeable-step';
-  const animation = submission.state().animation;
-  const currentStep = eventData.currentStep || animation[animation.length - 1].currentStep +1;
   const newState = {
     type,
     tstamp: eventData.tstamp || new Date(),
-    currentStep,
-    dataStructuresState,
+    currentStep: eventData.currentStep || undefined,
+    dsInExercise,
     animationHTML: exerciseHTML
   };
   try {
-    submission.addAnimationStepSuccesfully.gradableStep(newState);
+    return submission.addAnimationStepSuccesfully.gradableStep(newState);
   } catch (error) {
     console.warn(`Could not add state change to animatio: ${error}`)
+    return false;
   }
 }
 

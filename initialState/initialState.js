@@ -5,40 +5,16 @@ const dataStructures = require('../dataStructures/dataStructures');
 
 function setInitialDataStructures(exercise, passEvent) {
   const initialStructures = exercise.initialStructures;
-  dataStructures.getDataStructuresFromExercise(exercise,passEvent).forEach(ds => {
-    submission.addInitialStateSuccesfully.dataStructure(ds);
+  const dss = dataStructures.getDataStructuresFromExercise(exercise,passEvent);
+  const dssSet = dss.map(ds => {
+    return submission.addInitialStateSuccesfully.dataStructure(ds);
   });
+  return dsSet.every(ds => ds === true;);
 }
 
 function moreThanOneDs(initialStructures) {
   return Array.isArray(initialStructures);
 }
-
-// function someIdMissing(exercise) {
-//   const initialStructures = exercise.initialStructures;
-//   // If initialDataStructures is an Array, it means there is more than one data structure
-//   if(Array.isArray(initialStructures)) {
-//     initialStructures.forEach(ds => {
-//       const htmlElement = ds.element['0'];
-//       if(!htmlElement.id) return true;
-//     })
-//     return false;
-//   }
-//   return !!initialStructures.element['0'].id;
-// }
-
-// function fixMissingIds(exercise, passEvent) {
-//   const initialStructures = exercise.initialStructures;
-//   if(Array.isArray(initialStructures)) {
-//     initialStructures.map(ds => {
-//       const htmlElement = ds.element['0'];
-//       if(!htmlElement.id) handleMissingId(htmlElement, passEvent);
-//     })
-//   } else {
-//     const htmlElement = initialStructures.element['0'];
-//     if(!htmlElement.id) handleMissingId(htmlElement, passEvent);
-//   }
-// }
 
 function handleMissingId(htmlElement, passEvent) {
   tempId = `tempid-${Math.random().toString().substr(2)}`;
@@ -70,13 +46,14 @@ function setNewId(eventData) {
   const initialState = submission.state().initialState;
   const dsIndex = initialState.dataStructures.findIndex(ds => ds.id === eventData.tempId);
   if(dsIndex >= 0) {
-    submission.addInitialStateSuccesfully.setDsId(dsIndex, eventData.newId);
+    return submission.addInitialStateSuccesfully.setDsId(dsIndex, eventData.newId);
   }
+  return false;
 }
 
 function setAnimationHTML(exercise) {
   const html = helpers.getExerciseHTML(exercise);
-  submission.addInitialStateSuccesfully.animationHTML(html);
+  return submission.addInitialStateSuccesfully.animationHTML(html);
 }
 
 module.exports = {
