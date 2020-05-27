@@ -38,7 +38,7 @@ const atLeastOneDsEventHandled = (exercise, event) => {
   const nodeEvent = () => nodeEventHandled(exercise, event);
   const edgeEvent = () => edgeEventHandled(exercise, event);
   const missingId = () => missinIdUpdated(event);
-  return arrayEvent || nodeEvent || edgeEvent || missingId;
+  return arrayEvent() || nodeEvent() || edgeEvent() || missingId();
 }
 
 const dsEventHandledSuccesfully = (exercise, event) => {

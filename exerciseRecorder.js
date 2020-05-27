@@ -96,9 +96,12 @@ const modelAnswerEventHandledSuccesfully = (exercise, event) => {
 
 function passEvent(eventData) {
   saveExerciseObject(initEventHandledSuccesfully(eventData));
-  const wasDataStructureEvent = dsEventsHandler.handled(exercise, eventData);
-  const wasExerciseEvent = exerciseStepsEventHandledSuccesfully(exercise, eventData);
-  const wasModelAnswerEvent = modelAnswerEventHandledSuccesfully(exercise, eventData);
+  const dataStructureEventRecorded = () => dsEventsHandler.handled(exercise, eventData);
+  const exerciseEventRecorded = () => {
+    const stepEvent = exerciseStepsEventHandledSuccesfully(exercise, eventData);
+    return stepEvent || exerciseStepsEventHandledSuccesfully(exercise, eventData)(modelAnswer, finish);
+  }
+  const modelAnswerEventRecorded = () => modelAnswerEventHandledSuccesfully(exercise, eventData);
 }
 
 function passEvent(eventData) {

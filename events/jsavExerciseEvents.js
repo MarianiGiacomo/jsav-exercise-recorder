@@ -35,29 +35,29 @@ const gradeButtonEventHandled = (event) => {
   return isRightEvent;
 }
 
-const gradeEventHandled = (exercise, event) => {
-  return (modelAnswer) => {
-    const isRightEvent = event.type === 'jsav-exercise-grade';
-    const modalText = `Recording model answer steps\n ${def_func.modelAnswer.progress()}`;
-    !modelAnswer.opened && showModalWindow(modalText);
-    return isRightEvent && (finish) => finish()
-  }
-
-  return isRightEvent && wasHandled(exercise, event);
+const atLeastOneExerciseEventHandled = (exercise, event) => {
+  const undo = () => undoEventHandled(exercise, event);
+  const gradeableStep = () => gradeableStepEventHandled(exercise, event);
+  const reset = () => resetEventHandled(event);
+  const gradeButton = () => gradeButtonEventHandled(event);
+  return undo() || gradeableStep() || reset() || gradeButton();
 }
 
-const atLeastOneExerciseEventHandled = (exercise, event) => {
-  const undo = undoEventHandled(exercise, event);
-  const gradeableStep = gradeableStepEventHandled(exercise, event);
-  const reset = resetEventHandled(event);
-  const gradeButton = gradeButtonEventHandled(event);
-  const grade = gradeEventHandled(exercise, event);
-  return undo || gradeableStep || reset || gradeButton || grade || undo;
+const gradeOrOtherEventHandled = (exercise, event) => {
+  const grade = (exercise, event) => {
+    return (modelAnswer, finish) => {
+      const isRightEvent = event.type === 'jsav-exercise-grade';
+      const modalText = `Recording model answer steps\n ${def_func.modelAnswer.progress()}`;
+      isRightEvent && !modelAnswer.opened && showModalWindow(modalText);
+      return isRightEvent && finish();
+    }
+  }
+  return atLeastOneExerciseEventHandled(exercise, event) || grade(exercise, event);
 }
 
 const exerciseStepsEventHandledSuccesfully = (exercise, event) => {
   const exerciseRecorded = typeof(exercise) === 'object';
-  return exerciseRecorded && atLeastOneExerciseEventHandled(exercise, event)
+  return exerciseRecorded && gradeOrOtherEventHandled(exercise, event);
 }
 
 function showModalWindow(text) {
@@ -68,4 +68,8 @@ function showModalWindow(text) {
     return false;
   }
   return true;
+}
+
+module.exports = {
+  handled: exerciseStepsEventHandledSuccesfully
 }
