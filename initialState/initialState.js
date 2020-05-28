@@ -9,7 +9,7 @@ function setInitialDataStructures(exercise, passEvent) {
   const dssSet = dss.map(ds => {
     return submission.addInitialStateSuccesfully.dataStructure(ds);
   });
-  return dsSet.every(ds => ds === true;);
+  return dssSet.every(ds => ds === true);
 }
 
 function moreThanOneDs(initialStructures) {

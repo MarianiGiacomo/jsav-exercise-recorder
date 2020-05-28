@@ -1,6 +1,9 @@
 const submission = require('./submission/submission');
 const metad_func = require('./metadata/metadata');
-const dsEventsHandler = require('./events/jsavDsEvents')
+const dsEventsHandler = require('./events/jsavDsEvents');
+const exerciseEventHandler = require('./events/jsavExerciseEvents');
+const initEventHandler = require('./events/jsavInitEvents');
+const modelAnswerEventHandler = require('./events/jsavModelAnswerEvents');
 const def_func = require('./definitions/definitions');
 const services = require('./rest-service/services');
 const helpers = require('./utils/helperFunctions');
@@ -53,133 +56,110 @@ function getMetadataFromURLparams() {
   return { max_points, uid, ordinal_number };
 }
 
+function passEvent(eventData) {
+  const initEventRecorded = () => {
+    return saveExerciseObject(initEventHandler.handled(eventData,passEvent));
+  }
+  const dataStructureEventRecorded = () => {
+    return dsEventsHandler.handled(exercise,eventData);
+  }
+  const exerciseEventRecorded = () => {
+    const stepEvent = exerciseEventHandler.handled(exercise,eventData);
+    return stepEvent || exerciseEventHandler.handled(exercise,eventData)(modelAnswer,finish);
+  }
+  const modelAnswerEventRecorded = () => {
+    return modelAnswerEventHandler.handled(exercise,eventData)(modelAnswer);
+  }
+  const composeOrOne = initEventRecorded() || dataStructureEventRecorded();
+  const composeOrTwo =  exerciseEventRecorded() || modelAnswerEventRecorded();
+  return composeOrOne || composeOrTwo;
+}
+
 function saveExerciseObject(data) {
   exercise = typeof(data) === 'object' && data;
   return data;
 }
 
-
-const exerciseModelEvents = [
-  'jsav-exercise-model-open',
-  'jsav-exercise-model-recorded',
-  'jsav-exercise-model-init',
-  'jsav-exercise-model-begin',
-  'jsav-exercise-model-forward',
-  'jsav-exercise-model-backward',
-  'jsav-exercise-model-end',
-  'jsav-exercise-model-close'
-];
-// const isExerciseModelEvents = (event) => exerciseModelEvents.includes(event.type);
-function setModelAnswerOpened(event) {
-  modelAnswer.opened = event.type === 'jsav-exercise-model-open';
-  modelAnswer.ready = event.type === 'jsav-exercise-model-open';
-  return modelAnswer.opened && modelAnswer.ready;
+function unknownEvent(eventData) {
+  console.warn('Exercise Recorder, unknown event', eventData);
 }
 
-function setSpeed(exercise) {
-  exercise.modelav.SPEED = modelAnswer.recordingSpeed +10;
-  return exercise.modelav.SPEED === modelAnswer.recordingSpeed +10;
-}
-
-const modelAnswerInitEventHandled = (exercise, event) => {
-  const setSpeed = () => setSpeeds(exercise, event);
-  const recordStep = () => def_func.modelAnswer.recordStep(exercise);
-  const stepForward = () => $('.jsavmodelanswer .jsavforward').click();
-  const isRightEvent = () => event.type === 'jsav-exercise-model-init';
-  const wasHandled = () => !modelAnswer.opened && setSpeed() && recordStep() && stepForward()
-  return isRightEvent && wasHandled(exercise, event);
-}
-
-const modelAnswerEventHandledSuccesfully = (exercise, event) => {
-
-}
-
-function passEvent(eventData) {
-  saveExerciseObject(initEventHandledSuccesfully(eventData));
-  const dataStructureEventRecorded = () => dsEventsHandler.handled(exercise, eventData);
-  const exerciseEventRecorded = () => {
-    const stepEvent = exerciseStepsEventHandledSuccesfully(exercise, eventData);
-    return stepEvent || exerciseStepsEventHandledSuccesfully(exercise, eventData)(modelAnswer, finish);
-  }
-  const modelAnswerEventRecorded = () => modelAnswerEventHandledSuccesfully(exercise, eventData);
-}
-
-function passEvent(eventData) {
-  console.log('EVENT DATA', eventData);
-  switch(eventData.type){
-    case 'jsav-init':
-      def_func.setExerciseOptions(eventData);
-      break;
-    case 'jsav-recorded':
-      break;
-    case 'jsav-exercise-init':
-      exercise = eventData.exercise;
-      jsav = exercise.jsav;
-      def_func.setDefinitions(exercise);
-      // init_state_func.fixMissingIds(exercise, passEvent);
-      // if(init_state_func.someIdMissing(exercise)) {
-      //   init_state_func.fixMissingIds(exercise, passEvent);
-      // }
-      init_state_func.setInitialDataStructures(exercise, passEvent);
-      init_state_func.setAnimationHTML(exercise);
-      break;
-    case String(eventData.type.match(/^jsav-array-.*/)):
-      anim_func.handleArrayEvents(exercise, eventData);
-      break;
-    case String(eventData.type.match(/^jsav-node-.*/)):
-      anim_func.handleNodeEvents(exercise, eventData);
-      break;
-    case String(eventData.type.match(/^jsav-edge-.*/)):
-      anim_func.handleEdgeEvents(exercise, eventData);
-      break;
-    // This is fired by the initialState.js if the DS ID is set only on first click
-    case 'recorder-set-id':
-      init_state_func.setNewId(eventData);
-      break;
-    case 'jsav-exercise-undo':
-      setTimeout(() => anim_func.handleGradableStep(exercise, eventData), 100);
-      break;
-    case 'jsav-exercise-gradeable-step':
-      anim_func.handleGradableStep(exercise, eventData);
-      break;
-    case 'jsav-exercise-model-open':
-      modelAnswer.opened = true;
-      modelAnswer.ready = true;
-    case 'jsav-exercise-model-init':
-      if(!modelAnswer.opened) {
-        exercise.modelav.SPEED = modelAnswer.recordingSpeed +10;
-        modelAnswer.ready = !def_func.modelAnswer.recordStep(exercise);
-        $('.jsavmodelanswer .jsavforward').click();
-        break;
-      }
-    case 'jsav-exercise-model-forward':
-      if(!modelAnswer.opened && !modelAnswer.ready) {
-        setTimeout(() => {
-          modelAnswer.ready = !def_func.modelAnswer.recordStep(exercise);
-          $('.jsavmodelanswer .jsavforward').click();
-        }, modelAnswer.recordingSpeed);
-        break;
-      }
-    case String(eventData.type.match(/^jsav-exercise-model-.*/)):
-      if (modelAnswer.opened) anim_func.handleModelAnswer(exercise, eventData);
-      break;
-    case 'jsav-exercise-grade-button':
-      break;
-    case 'jsav-exercise-grade':
-      if(!modelAnswer.opened) {
-        const popUpText = `Recording model answer steps\n ${def_func.modelAnswer.progress()}`;
-        const popUp = helpers.getPopUp(popUpText);
-        $('body').append(popUp);
-      }
-      finish(eventData);
-      break;
-    case 'jsav-exercise-reset':
-      submission.reset();
-      break;
-    default:
-      console.warn('UNKNOWN EVENT', eventData);
-  }
-}
+// function passEvent(eventData) {
+//   console.log('EVENT DATA', eventData);
+//   switch(eventData.type){
+//     case 'jsav-init':
+//       def_func.setExerciseOptions(eventData);
+//       break;
+//     case 'jsav-recorded':
+//       break;
+//     case 'jsav-exercise-init':
+//       exercise = eventData.exercise;
+//       jsav = exercise.jsav;
+//       def_func.setDefinitions(exercise);
+//       // init_state_func.fixMissingIds(exercise, passEvent);
+//       // if(init_state_func.someIdMissing(exercise)) {
+//       //   init_state_func.fixMissingIds(exercise, passEvent);
+//       // }
+//       init_state_func.setInitialDataStructures(exercise, passEvent);
+//       init_state_func.setAnimationHTML(exercise);
+//       break;
+//     case String(eventData.type.match(/^jsav-array-.*/)):
+//       anim_func.handleArrayEvents(exercise, eventData);
+//       break;
+//     case String(eventData.type.match(/^jsav-node-.*/)):
+//       anim_func.handleNodeEvents(exercise, eventData);
+//       break;
+//     case String(eventData.type.match(/^jsav-edge-.*/)):
+//       anim_func.handleEdgeEvents(exercise, eventData);
+//       break;
+//     // This is fired by the initialState.js if the DS ID is set only on first click
+//     case 'recorder-set-id':
+//       init_state_func.setNewId(eventData);
+//       break;
+//     case 'jsav-exercise-undo':
+//       setTimeout(() => anim_func.handleGradableStep(exercise, eventData), 100);
+//       break;
+//     case 'jsav-exercise-gradeable-step':
+//       anim_func.handleGradableStep(exercise, eventData);
+//       break;
+//     case 'jsav-exercise-model-open':
+//       modelAnswer.opened = true;
+//       modelAnswer.ready = true;
+//     case 'jsav-exercise-model-init':
+//       if(!modelAnswer.opened) {
+//         exercise.modelav.SPEED = modelAnswer.recordingSpeed +10;
+//         modelAnswer.ready = !def_func.modelAnswer.recordStep(exercise);
+//         $('.jsavmodelanswer .jsavforward').click();
+//         break;
+//       }
+//     case 'jsav-exercise-model-forward':
+//       if(!modelAnswer.opened && !modelAnswer.ready) {
+//         setTimeout(() => {
+//           modelAnswer.ready = !def_func.modelAnswer.recordStep(exercise);
+//           $('.jsavmodelanswer .jsavforward').click();
+//         }, modelAnswer.recordingSpeed);
+//         break;
+//       }
+//     case String(eventData.type.match(/^jsav-exercise-model-.*/)):
+//       if (modelAnswer.opened) anim_func.handleModelAnswer(exercise, eventData);
+//       break;
+//     case 'jsav-exercise-grade-button':
+//       break;
+//     case 'jsav-exercise-grade':
+//       if(!modelAnswer.opened) {
+//         const popUpText = `Recording model answer steps\n ${def_func.modelAnswer.progress()}`;
+//         const popUp = helpers.getPopUp(popUpText);
+//         $('body').append(popUp);
+//       }
+//       finish(eventData);
+//       break;
+//     case 'jsav-exercise-reset':
+//       submission.reset();
+//       break;
+//     default:
+//       console.warn('UNKNOWN EVENT', eventData);
+//   }
+// }
 
 function finish(eventData) {
   if(modelAnswer.ready) {
