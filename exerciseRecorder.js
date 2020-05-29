@@ -74,8 +74,8 @@ function passEvent(eventData) {
   }
   const initOrDsEvent = initEventRecorded() || dataStructureEventRecorded();
   const exerOrModAnsEvent =  exerciseEventRecorded() || modelAnswerEventRecorded();
-  const gradeAndFinish = () => gradeEventRecorded() && finished();
-  return initOrDsEvent || exerOrModAnsEvent || gradeAndFinish() || unknownEvent();
+  const gradeAndFinish = gradeEventRecorded() && finished();
+  return initOrDsEvent || exerOrModAnsEvent || gradeAndFinish || unknownEvent();
 }
 
 function saveExerciseIfReturned(data) {

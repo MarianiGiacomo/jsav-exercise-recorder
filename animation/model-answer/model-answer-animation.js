@@ -6,8 +6,10 @@ function handleModelAnswer(exercise, eventData) {
   const currentStep = eventData.currentStep;
   switch(type) {
     case 'model-init':
+      return true;
       break;
     case 'model-recorded':
+      return true;
       break;
     default:
       if(exercise.modelDialog) {
@@ -18,9 +20,10 @@ function handleModelAnswer(exercise, eventData) {
           modelAnswerHTML: exercise.modelDialog[0].innerHTML
         };
         try {
-          submission.addAnimationStepSuccesfully.modelAnswer(newStep);
+          return submission.addAnimationStepSuccesfully.modelAnswer(newStep);
         } catch (error) {
           console.warn(`Could not add model answer step to animation: ${error}`)
+          return false;
         }
       }
       break;
