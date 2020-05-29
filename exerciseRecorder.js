@@ -58,26 +58,40 @@ function getMetadataFromURLparams() {
 
 function passEvent(eventData) {
   const initEventRecorded = () => {
-    return saveExerciseObject(initEventHandler.handled(eventData,passEvent));
+    return saveExerciseIfReturned(initEventHandler.handled(eventData,passEvent));
   }
   const dataStructureEventRecorded = () => {
     return dsEventsHandler.handled(exercise,eventData);
   }
   const exerciseEventRecorded = () => {
-    const stepEvent = exerciseEventHandler.handled(exercise,eventData);
-    return stepEvent || exerciseEventHandler.handled(exercise,eventData)(modelAnswer,finish);
+    return exerciseEventHandler.stepHandled(exercise,eventData);
+  }
+  const gradeEventRecorded = () => {
+    return exerciseEventHandler.gradeHandled(eventData, modelAnswer);
   }
   const modelAnswerEventRecorded = () => {
-    return modelAnswerEventHandler.handled(exercise,eventData)(modelAnswer);
+    return modelAnswerEventHandler.handled(exercise,eventData,modelAnswer);
   }
-  const composeOrOne = initEventRecorded() || dataStructureEventRecorded();
-  const composeOrTwo =  exerciseEventRecorded() || modelAnswerEventRecorded();
-  return composeOrOne || composeOrTwo;
+  const initOrDsEvent = initEventRecorded() || dataStructureEventRecorded();
+  const exerOrModAnsEvent =  exerciseEventRecorded() || modelAnswerEventRecorded();
+  const gradeAndFinish = () => gradeEventRecorded() && finished();
+  return initOrDsEvent || exerOrModAnsEvent || gradeAndFinish() || unknownEvent();
 }
 
-function saveExerciseObject(data) {
-  exercise = typeof(data) === 'object' && data;
-  return data;
+function saveExerciseIfReturned(data) {
+  exerciseSaved = () => saveExercise(data);
+  const isObject = typeof(data) === 'object';
+  return isObject && exerciseSaved() || data;
+}
+
+function saveExercise(data) {
+  try {
+    exercise = data;
+  } catch (err) {
+    console.warn('Exercise Recorder, saving exercise', err);
+    return false;
+  }
+  return true;
 }
 
 function unknownEvent(eventData) {
@@ -161,17 +175,33 @@ function unknownEvent(eventData) {
 //   }
 // }
 
-function finish(eventData) {
-  if(modelAnswer.ready) {
-    anim_func.handleGradeButtonClick(eventData);
-    def_func.setFinalGrade(eventData) && services.sendSubmission(submission.state(), post_url);
-    submission.reset();
-    if(!modelAnswer.opened) {
-      $('#popUpDiv').remove();
-    }
-    $(document).off("jsav-log-event");
-  } else {
-    $('#popUpContent').text(`Recording model answer steps\n ${def_func.modelAnswer.progress()}`);
-    setTimeout(() => finish(eventData), modelAnswer.recordingSpeed);
+function finished(eventData) {
+  const modelAnswerRecorded = modelAnswer.ready;
+  const posted = () => services.sendSubmission(submission.state(), post_url);
+  const reset = () => submission.reset();
+  const wasHandled = () => posted() && reset();
+  const removeModal = () => !modelAnswer.opened && $('#popUpDiv').remove();
+  const setModalText = () => {
+    return $('#popUpContent')
+    .text(`Recording model answer steps\n ${def_func.modelAnswer.progress()}`);
   }
+  const recallWithTimeout = () => {
+    return setTimeout(() => finished(eventData), modelAnswer.recordingSpeed);
+  }
+  return (modelAnswerRecorded && wasHandled() && removeModal()) || recallWithTimeout();
 }
+
+// function finish(eventData) {
+//   if(modelAnswer.ready) {
+//     anim_func.handleGradeButtonClick(eventData);
+//     def_func.setFinalGrade(eventData) && services.sendSubmission(submission.state(), post_url);
+//
+//     if(!modelAnswer.opened) {
+//       $('#popUpDiv').remove();
+//     }
+//     $(document).off("jsav-log-event");
+//   } else {
+//     $('#popUpContent').text(`Recording model answer steps\n ${def_func.modelAnswer.progress()}`);
+//     setTimeout(() => finish(eventData), modelAnswer.recordingSpeed);
+//   }
+// }

@@ -24,26 +24,28 @@ function initEventHandledSuccesfully(eventData, passEvent) {
 
 function setOptions(eventData) {
   const isRightEvent = eventData.type === 'jsav-init';
-  const wasHandled = def_func.setExerciseOptions;
-  return isRightEvent && wasHandled(eventData);
+  const wasHandled = () => def_func.setExerciseOptions(eventData);
+  return isRightEvent && wasHandled();
 }
 
 function setDefinitions(eventData) {
   const isRightEvent = eventData.type === 'jsav-exercise-init';
-  const wasHandled = def_func.setDefinitions;
-  return isRightEvent && wasHandled(eventData.exercise);
+  const wasHandled = () => def_func.setDefinitions(eventData.exercise);
+  return isRightEvent && wasHandled();
 }
 
 function setDataStructures(eventData, passEvent) {
   const isRightEvent = eventData.type === 'jsav-exercise-init';
-  const wasHandled = init_state_func.setInitialDataStructures;
-  return isRightEvent && wasHandled(eventData.exercise, passEvent);
+  const wasHandled = () => {
+    return init_state_func.setInitialDataStructures(eventData.exercise, passEvent);
+  }
+  return isRightEvent && wasHandled();
 }
 
 function setInitialHtml(eventData) {
   const isRightEvent = eventData.type === 'jsav-exercise-init';
-  const wasHandled = init_state_func.setAnimationHTML;
-  return isRightEvent && wasHandled(eventData.exercise);
+  const wasHandled = () => init_state_func.setAnimationHTML(eventData.exercise);
+  return isRightEvent && wasHandled();
 }
 
 module.exports = {

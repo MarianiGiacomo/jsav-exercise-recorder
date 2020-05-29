@@ -51,8 +51,10 @@ function getModelAnswerStepOperations(operations) {
 function getFormattedOperationArgs(args) {
   const formattedArgs = {}
   for(const arg in args) {
-    formattedArgs[arg] = (typeof(args[arg]) !== 'object' || Array.isArray(args[arg]))?
-    args[arg] : `Converted to string when recording to avoid cyclic object value: ${args[arg].toString()}`
+    const handledArray = () => Array.isArray(args[arg]) && getFormattedOperationArgs(args);
+    const handledNonObjects = () => typeof(args[arg]) !== 'object' && args[arg];
+    const convertedToString = () => `Converted to string when recording to avoid cyclic object value: ${args[arg].toString()}`
+    formattedArgs[arg] = handledArray || handledNonObjects || convertedToString;
   }
   return formattedArgs;
 }

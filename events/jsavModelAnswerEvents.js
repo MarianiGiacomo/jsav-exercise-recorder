@@ -13,39 +13,44 @@ Handling of the following events:
 const def_func = require('../definitions/definitions');
 const anim_func = require('../animation/animation');
 
-async function modelAnswerEventHandledSuccesfully(exercise,eventData) {
-  const answerOpened = modelAnswer.opened;
-  const openSet = () => setModelAnswerOpenedAndReady(eventData);
-  const initHandled = () => modelAnswerInitHandled(exercise,eventData);
-  const forwardHAndled = async () => await forwardHandledComposer(exercise,eventData)
+async function modelAnswerEventHandledSuccesfully(exercise,eventData,modelAnswer) {
+  const openSet = () => setModelAnswerOpenedAndReady(eventData,modelAnswer);
+  const initHandled = () => modelAnswerInitHandled(exercise,eventData,modelAnswer);
+  const forwardHandled = async () => await forwardHandledComposer(exercise,eventData,modelAnswer)
   const ifAnswerOpened = () => {
-    return answerOpened && modelAnswerOpenedEvents(exercise,eventData);
+    return modelAnswerOpenedEvents(exercise,eventData,modelAnswer);
   }
   const ifAnswerNotOpened = async () => {
-    return !answerOpened && (openSet() || initHandled() || await forwardHAndled());
+    return openSet() || initHandled() || await forwardHandled();
   }
-  return ifAnswerOpened() || await ifAnswerNotOpened();
+  return await ifAnswerNotOpened() || ifAnswerOpened();
 }
 
-function setModelAnswerOpenedAndReady(modelAnswer, eventData) {
-  return (modelAnswer) => {
-    modelAnswer.opened = eventData.type === 'jsav-exercise-model-open';
-    modelAnswer.ready = eventData.type === 'jsav-exercise-model-open';
-    return modelAnswer.opened && modelAnswer.ready;
+function setModelAnswerOpenedAndReady(eventData,modelAnswer) {
+  const isRightEvent = eventData.type === 'jsav-exercise-model-open';
+  const set = () => {
+    try {
+      modelAnswer.opened = true;
+      modelAnswer.ready = true;
+    } catch (err) {
+      console.warn('Exercise Recorder, setting model answer opened and ready', err);
+      return false;
+    }
+    return true;
   }
+  return isRightEvent && set();
 }
 
-function modelAnswerInitHandled(exercise, eventData) {
-  return (modelAnswer) => {
-    const isRightEvent = eventData.type === 'jsav-exercise-model-init';
-    const speedSet = () => setSpeed(exercise, modelAnswer);
-    const recordStep = () => def_func.modelAnswer.recordStep(exercise);
-    const wasHandled = () => speedSet() && recordStep() && stepForward()
-    return isRightEvent && answerNotOpened && wasHandled();
-  }
+function modelAnswerInitHandled(exercise, eventData,modelAnswer) {
+  const answerNotOpened = !modelAnswer.opened;
+  const isRightEvent = eventData.type === 'jsav-exercise-model-init';
+  const speedSet = () => setSpeed(exercise, modelAnswer);
+  const recordStep = () => def_func.modelAnswer.recordStep(exercise);
+  const wasHandled = () => speedSet() && recordStep() && stepForward()
+  return isRightEvent && answerNotOpened && wasHandled();
 }
 
-function setSpeed(exercise) {
+function setSpeed(exercise,modelAnswer) {
   exercise.modelav.SPEED = modelAnswer.recordingSpeed +10;
   return exercise.modelav.SPEED === modelAnswer.recordingSpeed +10;
 }
@@ -60,9 +65,9 @@ function stepForward(){
   return true;
 }
 
-function forwardHandledComposer(exercise,eventData) {
+function forwardHandledComposer(exercise,eventData,modelAnswer) {
   const isRightEvent = eventData.type === 'jsav-exercise-model-forward';
-  const composer = async (modelAnswer) => {
+  const composer = async () => {
     return modelAnswerForwardHandled(modelAnswer,exercise)
     .then(res => res )
     .catch(err => {
@@ -75,6 +80,7 @@ function forwardHandledComposer(exercise,eventData) {
 
 async function modelAnswerForwardHandled(modelAnswer,eventData) {
   const recordReady = modelAnswer.ready;
+  const answerNotOpened = !modelAnswer.opened;
   const step = new Promise( (res, rej) => {
     setTimeout(() => {
       try {
@@ -87,15 +93,14 @@ async function modelAnswerForwardHandled(modelAnswer,eventData) {
       }
     }, modelAnswer.recordingSpeed);
   })
-  return isRightEvent && !recordReady && step;
+  return isRightEvent && answerNotOpened && !recordReady && step;
 }
 
-function modelAnswerOpenedEvents(exercise, eventData) {
-  return (modelAnswer) => {
+function modelAnswerOpenedEvents(exercise,eventData,modelAnswer) {
     const isRightEvent = eventData.type.match(/^jsav-exercise-model-.*/);
-    const wasHandled = anim_func.handleModelAnswer;
-    return isRightEvent && wasHandled();
-  }
+    const answerOpened = modelAnswer.opened;
+    const wasHandled = () => anim_func.handleModelAnswer(exercise,eventData);
+    return isRightEvent && answerOpened && wasHandled();
 }
 
 module.exports = {

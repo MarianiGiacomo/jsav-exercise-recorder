@@ -13,7 +13,19 @@ const submission = require('../submission/submission');
 
 function exerciseStepsEventHandledSuccesfully(exercise, eventData) {
   const exerciseRecorded = typeof(exercise) === 'object';
-  return (exerciseRecorded && atLeastOneHandled(exercise, eventData)) || grade(eventData);
+  return exerciseRecorded && atLeastOneHandled(exercise, eventData);
+}
+
+function exerciseGradeEventHandledSuccesfully(eventData, modelAnswer) {
+  const isRightEvent = eventData.type === 'jsav-exercise-grade';
+  const modalText = () => {
+    return `Recording model answer steps\n ${def_func.modelAnswer.progress()}`;
+  };
+  const modalShown = () => !modelAnswer.opened && showModalWindow(modalText());
+  const clickHandled = () => anim_func.handleGradeButtonClick(eventData)
+  const gradeSet = () => def_func.setFinalGrade(eventData);
+  const wasHandled = () => clickHandled() && gradeSet();
+  return isRightEvent && wasHandled() && (modelAnswer.opened || modalShown());
 }
 
 function atLeastOneHandled(exercise, eventData) {
@@ -26,19 +38,19 @@ function atLeastOneHandled(exercise, eventData) {
 
 function undoEventHandled(exercise, eventData) {
   const isRightEvent = eventData.type === 'jsav-exercise-undo';
-  const wasHandled = anim_func.handleGradableStep;
-  return isRightEvent && wasHandled(exercise, eventData);
+  const wasHandled = () => anim_func.handleGradableStep(exercise, eventData);
+  return isRightEvent && wasHandled();
 }
 
 function gradeableStepEventHandled(exercise, eventData) {
   const isRightEvent = eventData.type === 'jsav-exercise-gradeable-step';
-  const wasHandled = anim_func.handleGradableStep;
-  return isRightEvent && wasHandled(exercise, eventData);
+  const wasHandled = () => anim_func.handleGradableStep(exercise, eventData);
+  return isRightEvent && wasHandled();
 }
 
 function resetEventHandled(eventData) {
   const isRightEvent = eventData.type === 'jsav-exercise-reset';
-  const wasHandled = submission.reset;
+  const wasHandled = () => submission.reset();
   return isRightEvent && wasHandled();
 }
 
@@ -47,15 +59,6 @@ function gradeButtonEventHandled(eventData) {
   const isRightEvent = eventData.type === 'jsav-exercise-grade-button';
   // Don't do anything with this event
   return isRightEvent;
-}
-
-function grade(eventData) {
-  return (modelAnswer, finish) => {
-    const isRightEvent = eventData.type === 'jsav-exercise-grade';
-    const modalText = `Recording model answer steps\n ${def_func.modelAnswer.progress()}`;
-    isRightEvent && !modelAnswer.opened && showModalWindow(modalText);
-    return isRightEvent && finish(eventData);
-  }
 }
 
 function showModalWindow(text) {
@@ -69,5 +72,6 @@ function showModalWindow(text) {
 }
 
 module.exports = {
-  handled: exerciseStepsEventHandledSuccesfully
+  stepHandled: exerciseStepsEventHandledSuccesfully,
+  gradeHandled: exerciseGradeEventHandledSuccesfully
 }
